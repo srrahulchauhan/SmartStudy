@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Mail, Lock, GraduationCap, AlertCircle } from 'lucide-react';
-import { auth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from '../../firebase';
 import './styles.css';
 
 const Login = ({ onToggleMode, onLoginSuccess }) => {
@@ -29,11 +28,12 @@ const Login = ({ onToggleMode, onLoginSuccess }) => {
 
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('User logged in:', userCredential.user);
-      if (onLoginSuccess) onLoginSuccess(userCredential.user);
+      const mockUser = { email, uid: 'mock_' + Date.now(), displayName: email.split('@')[0] };
+      localStorage.setItem('smt_mock_user', JSON.stringify(mockUser));
+      console.log('User logged in (Mock):', mockUser);
+      if (onLoginSuccess) onLoginSuccess(mockUser);
     } catch (err) {
-      setError('Invalid credentials. Please check your email and password.');
+      setError('Login failed.');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -44,19 +44,13 @@ const Login = ({ onToggleMode, onLoginSuccess }) => {
     setIsGoogleLoading(true);
     setError('');
     try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      console.log('Google login success:', userCredential.user);
-      if (onLoginSuccess) onLoginSuccess(userCredential.user);
+      const mockUser = { email: 'google@example.com', uid: 'google_mock_uid', displayName: 'Google User' };
+      localStorage.setItem('smt_mock_user', JSON.stringify(mockUser));
+      console.log('Google login success (Mock):', mockUser);
+      if (onLoginSuccess) onLoginSuccess(mockUser);
     } catch (err) {
-      if (err.code === 'auth/popup-blocked') {
-        setError('Popup blocked by your browser. Please allow popups or use another login method.');
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setError('This domain/IP is not authorized in Firebase Console. Add it to Authorized Domains.');
-      } else {
-        setError(`Google sign-in failed: ${err.message}`);
-      }
-      console.error('Full Google Auth Error:', err);
+      setError(`Google sign-in failed: ${err.message}`);
+      console.error('Mock Google Auth Error:', err);
     } finally {
       setIsGoogleLoading(false);
     }

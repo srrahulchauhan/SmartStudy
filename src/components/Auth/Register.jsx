@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, AlertCircle, Sparkles } from 'lucide-react';
-import { auth, createUserWithEmailAndPassword } from '../../firebase';
 import './styles.css';
 
 const Register = ({ onToggleMode, onRegisterSuccess }) => {
@@ -34,11 +33,12 @@ const Register = ({ onToggleMode, onRegisterSuccess }) => {
 
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('User registered:', userCredential.user);
-      if (onRegisterSuccess) onRegisterSuccess(userCredential.user);
+      const mockUser = { email, uid: 'mock_' + Date.now(), displayName: name };
+      localStorage.setItem('smt_mock_user', JSON.stringify(mockUser));
+      console.log('User registered (Mock):', mockUser);
+      if (onRegisterSuccess) onRegisterSuccess(mockUser);
     } catch (err) {
-      setError('Registration failed. This email might already be in use.');
+      setError('Registration failed.');
       console.error(err);
     } finally {
       setIsLoading(false);

@@ -12,8 +12,6 @@ import SubjectTracker from './components/SubjectTracker';
 import GoalTracking from './components/GoalTracking';
 import Auth from './components/Auth/Auth';
 import { exportTasksToExcel, exportTasksToPDF } from './utils/exportUtils';
-import { auth, db, onAuthStateChanged, signOut } from './firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { 
   BookOpen, GraduationCap, CalendarDays, X, Bell, AlertCircle, 
   PlusCircle, Download, CalendarHeart, Menu, LayoutDashboard,
@@ -62,9 +60,12 @@ const analysisStyles = `
 `;
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('smt_mock_user');
+    return stored ? JSON.parse(stored) : null;
+  });
   const [tasks, setTasks] = useLocalStorage('study-tasks-today', []);
+  const [syncStatus, setSyncStatus] = useState('idle');
   const [historyTasks, setHistoryTasks] = useLocalStorage('study-tasks-history', []);
   const [activeTaskId, setActiveTaskId] = useLocalStorage('active-task-id', null);
   const [lastActiveDate, setLastActiveDate] = useLocalStorage('last-active-date', new Date().toDateString());
@@ -75,7 +76,7 @@ function App() {
   const [isTaskDrawerOpen, setIsTaskDrawerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [targetHours, setTargetHours] = useLocalStorage('study-target-hours', 100);
-  const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, success, error
+
 
   const todayISO = new Date().toISOString().split('T')[0];
   const todayTasks = tasks.filter(t => 
@@ -152,57 +153,7 @@ function App() {
     }
   }, [tasks, lastActiveDate, setTasks, setActiveTaskId, setLastActiveDate, historyTasks, setHistoryTasks]);
 
-  // Firebase Auth Persistence & Initial Data Load
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        // Fetch user data from Firestore
-        try {
-          const docRef = doc(db, 'users', currentUser.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.tasks) setTasks(data.tasks);
-            if (data.historyTasks) setHistoryTasks(data.historyTasks);
-          }
-        } catch (error) {
-          console.error("Error fetching data from Firestore:", error);
-        }
-      } else {
-        setUser(null);
-      }
-      setIsAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, [setTasks, setHistoryTasks]);
 
-  // Real-time Cloud Sync Logic (Firestore)
-  useEffect(() => {
-    const syncData = async () => {
-      if (!user) return; // Only sync if logged in
-      if (tasks.length === 0 && historyTasks.length === 0) return;
-      
-      setSyncStatus('syncing');
-      try {
-        const docRef = doc(db, 'users', user.uid);
-        await setDoc(docRef, {
-          tasks: tasks,
-          historyTasks: historyTasks,
-          lastUpdated: new Date().toISOString()
-        }, { merge: true });
-        
-        setSyncStatus('success');
-        setTimeout(() => setSyncStatus('idle'), 3000);
-      } catch (error) {
-        console.error('Firebase Backup failed:', error);
-        setSyncStatus('error');
-      }
-    };
-
-    const timer = setTimeout(syncData, 3000); // Sync after 3s of changes
-    return () => clearTimeout(timer);
-  }, [tasks, historyTasks, user]);
 
   const handleSaveTask = (taskData) => {
     let updatedTasks;
@@ -484,25 +435,15 @@ function App() {
   const activeTask = todayTasks.find(t => t.id === activeTaskId);
   const pendingTasksList = todayTasks.filter(t => t.status === 'pending');
 
-  if (isAuthLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B1120]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
+
 
   if (!user) {
     return <Auth onAuthSuccess={(u) => setUser(u)} />;
   }
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setUser(null);
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('smt_mock_user');
+    setUser(null);
   };
 
   return (
@@ -589,19 +530,6 @@ function App() {
                 PDF Report
               </button>
 
-              <button 
-                   onClick={() => setSyncStatus(syncStatus === 'syncing' ? 'idle' : 'syncing')}
-                   className="flex items-center gap-2 px-4 py-2 rounded-xl border transition-all hover:bg-white/5 cursor-pointer" 
-                   style={{ 
-                     background: syncStatus === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)', 
-                     borderColor: syncStatus === 'error' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.1)',
-                     color: syncStatus === 'error' ? '#EF4444' : syncStatus === 'success' ? '#10B981' : '#94A3B8'
-                   }}>
-                <Radio className={`w-3 h-3 ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">
-                  {syncStatus === 'syncing' ? 'Backing up...' : syncStatus === 'error' ? 'Offline' : 'Cloud Sync'}
-                </span>
-              </button>
             </div>
 
             {/* Right Actions */}
