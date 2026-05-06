@@ -3,13 +3,15 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-export function exportTasksToExcel(historyTasks) {
-    if (!historyTasks || historyTasks.length === 0) {
-      alert("No history data to export yet!");
+export function exportTasksToExcel(historyTasks, currentTasks = []) {
+    const dataToExport = (historyTasks && historyTasks.length > 0) ? historyTasks : currentTasks;
+    
+    if (!dataToExport || dataToExport.length === 0) {
+      alert("No data available to export! Please add some tasks first.");
       return;
     }
 
-    const data = historyTasks.map(task => {
+    const data = dataToExport.map(task => {
         const dateString = task.historyDate || new Date(task.actualStart || Date.now()).toISOString();
         return {
             'Date': formatDisplayDate(dateString),
@@ -35,9 +37,11 @@ export function exportTasksToExcel(historyTasks) {
     XLSX.writeFile(workbook, `study_report_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
-export function exportTasksToPDF(historyTasks) {
-    if (!historyTasks || historyTasks.length === 0) {
-        alert("No history data to export yet!");
+export function exportTasksToPDF(historyTasks, currentTasks = []) {
+    const dataToExport = (historyTasks && historyTasks.length > 0) ? historyTasks : currentTasks;
+    
+    if (!dataToExport || dataToExport.length === 0) {
+        alert("No data available to export! Please add some tasks first.");
         return;
     }
 
@@ -52,15 +56,15 @@ export function exportTasksToPDF(historyTasks) {
     doc.setTextColor(100);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
 
-    const totalHours = historyTasks.reduce((acc, t) => acc + (t.duration || 0), 0);
+    const totalHours = dataToExport.reduce((acc, t) => acc + (t.duration || 0), 0);
     doc.setFontSize(14);
     doc.setTextColor(37, 99, 235); // Indigo color
     doc.text(`Total Focus Time: ${totalHours.toFixed(2)} Hours`, 14, 40);
 
     // Table
     const tableColumn = ["Date", "Subject", "Topic", "Hours", "Status"];
-    const tableRows = historyTasks.map(task => [
-        formatDisplayDate(task.historyDate || new Date(task.actualStart || Date.now()).toISOString()),
+    const tableRows = dataToExport.map(task => [
+        formatDisplayDate(task.historyDate || task.taskDate || new Date(task.actualStart || Date.now()).toISOString()),
         task.subject || '',
         task.topic || '',
         task.duration ? task.duration.toFixed(2) : '0',

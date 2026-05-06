@@ -10,6 +10,7 @@ import HistoryCharts from './components/HistoryCharts';
 import Calendar from './components/Calendar';
 import SubjectTracker from './components/SubjectTracker';
 import GoalTracking from './components/GoalTracking';
+import Auth from './components/Auth/Auth';
 import { exportTasksToExcel, exportTasksToPDF } from './utils/exportUtils';
 import { 
   BookOpen, GraduationCap, CalendarDays, X, Bell, AlertCircle, 
@@ -59,6 +60,7 @@ const analysisStyles = `
 `;
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tasks, setTasks] = useLocalStorage('study-tasks-today', []);
   const [historyTasks, setHistoryTasks] = useLocalStorage('study-tasks-history', []);
   const [activeTaskId, setActiveTaskId] = useLocalStorage('active-task-id', null);
@@ -457,13 +459,21 @@ function App() {
   const activeTask = todayTasks.find(t => t.id === activeTaskId);
   const pendingTasksList = todayTasks.filter(t => t.status === 'pending');
 
+  if (!isAuthenticated) {
+    return <Auth onAuthSuccess={(user) => setIsAuthenticated(true)} />;
+  }
+
   return (
-    <div className="min-h-screen font-sans relative overflow-x-hidden" style={{ background: '#0F172A', color: '#F8FAFC' }}>
+    <div className="min-h-screen font-sans relative overflow-x-hidden selection:bg-indigo-500/30" style={{ background: '#0B1120', color: '#F8FAFC' }}>
       <style>{analysisStyles}</style>
 
-      {/* Decorative Background Elements */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full opacity-20 blur-[120px] pointer-events-none" style={{ background: 'radial-gradient(circle, #2563EB, transparent)' }}></div>
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full opacity-10 blur-[120px] pointer-events-none" style={{ background: 'radial-gradient(circle, #7C3AED, transparent)' }}></div>
+      {/* Premium Deep Background Elements */}
+      <div className="fixed inset-0 z-0 pointer-events-none" style={{
+         background: 'radial-gradient(circle at 15% 50%, rgba(37, 99, 235, 0.08), transparent 50%), radial-gradient(circle at 85% 30%, rgba(124, 58, 237, 0.08), transparent 50%), radial-gradient(circle at 50% 100%, rgba(14, 165, 233, 0.05), transparent 50%)',
+      }}></div>
+      <div className="fixed top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[120px] pointer-events-none animate-pulse-glow" style={{ background: 'radial-gradient(circle, #2563EB, transparent)' }}></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-20 blur-[120px] pointer-events-none animate-pulse-glow" style={{ background: 'radial-gradient(circle, #7C3AED, transparent)', animationDelay: '2s' }}></div>
+      <div className="fixed inset-0 z-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}></div>
 
       {/* ═══════════════════════════════════════════
           TOP NAVBAR
@@ -492,13 +502,15 @@ function App() {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center gap-2">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all hover:bg-white/5"
+              <button 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all hover:bg-white/5"
                 style={{ color: '#94A3B8' }}>
                 <Home className="w-4 h-4" />
                 Home
               </button>
 
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all"
+              <button className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                 style={{ background: 'rgba(99,102,241,0.15)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.3)' }}>
                 <LayoutDashboard className="w-4 h-4" />
                 Dashboard
@@ -520,7 +532,7 @@ function App() {
               </div>
 
               <button
-                onClick={() => exportTasksToExcel(historyTasks)}
+                onClick={() => exportTasksToExcel(historyTasks, tasks)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105"
                 style={{ background: 'rgba(34,197,94,0.1)', color: '#22C55E', border: '1px solid rgba(34,197,94,0.2)' }}>
                 <FileSpreadsheet className="w-4 h-4" />
@@ -528,14 +540,16 @@ function App() {
               </button>
 
               <button
-                onClick={() => exportTasksToPDF(historyTasks)}
+                onClick={() => exportTasksToPDF(historyTasks, tasks)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105"
                 style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}>
                 <FileText className="w-4 h-4" />
                 PDF Report
               </button>
 
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl border" 
+              <button 
+                   onClick={() => setSyncStatus(syncStatus === 'syncing' ? 'idle' : 'syncing')}
+                   className="flex items-center gap-2 px-4 py-2 rounded-xl border transition-all hover:bg-white/5 cursor-pointer" 
                    style={{ 
                      background: syncStatus === 'error' ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)', 
                      borderColor: syncStatus === 'error' ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.1)',
@@ -545,7 +559,7 @@ function App() {
                 <span className="text-[10px] font-bold uppercase tracking-widest">
                   {syncStatus === 'syncing' ? 'Backing up...' : syncStatus === 'error' ? 'Offline' : 'Cloud Sync'}
                 </span>
-              </div>
+              </button>
             </div>
 
             {/* Right Actions */}
@@ -642,11 +656,13 @@ function App() {
       {/* ═══════════════════════════════════════════
           PAGE CONTENT
       ═══════════════════════════════════════════ */}
-      <main className="max-w-[1800px] mx-auto px-4 md:px-8 lg:px-12 pt-24 pb-8 flex flex-col gap-4 relative z-10 font-medium">
+      <main className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 pt-24 pb-8 flex flex-col gap-6 relative z-10 font-medium">
 
         {/* Compressed Quick Header */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl">
-            <div className="flex items-center gap-6">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 p-6 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent opacity-50"></div>
+            
+            <div className="flex items-center gap-6 z-10">
                <div className="hidden md:block p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
                   <Zap className="w-6 h-6 text-indigo-400" />
                </div>
@@ -692,7 +708,7 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
           {/* Left: Timer Hub / Schedule */}
-          <div className="lg:col-span-12 xl:col-span-7 2xl:col-span-8 flex flex-col gap-6">
+          <div className="lg:col-span-12 xl:col-span-8 flex flex-col gap-6">
             {activeTask ? (
               <TimerDisplay
                 activeTask={activeTask}
@@ -706,31 +722,35 @@ function App() {
                 onModifyTask={handleModifyTask}
               />
             ) : (
-               <div className="relative p-8 md:p-12 rounded-[2rem] border border-white/10 overflow-hidden flex flex-col items-center justify-center text-center shadow-2xl min-h-[520px] bg-white/[0.02] shadow-2xl">
+               <div className="relative p-6 md:p-10 rounded-[2rem] border border-white/5 overflow-hidden flex flex-col items-center justify-center text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] min-h-[400px] xl:min-h-[480px] bg-gradient-to-br from-white/[0.04] to-transparent">
+                  <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
                   {/* Background Image */}
-                  <img 
-                    src="/study_focus_bg_1776301831945.png" 
-                    alt="Today's Schedule" 
-                    className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
-                  />
-                  <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.2) 0%, #0F172A 100%)' }}></div>
-
+                  <div className="absolute inset-0 w-full h-full opacity-10 mix-blend-overlay bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500 via-slate-900 to-black"></div>
+                  
                   <div className="relative z-10 w-full max-w-2xl mx-auto flex flex-col items-center">
-                    <p className="text-[11px] font-black uppercase tracking-[0.4em] mb-6 animate-float-subtle animate-shimmer-text">Active Schedule</p>
-                    <div className="p-5 rounded-3xl bg-indigo-600/10 border border-indigo-500/20 mb-8 backdrop-blur-xl inline-flex shadow-2xl animate-pulse">
-                       <Bell className="w-10 h-10 text-indigo-400" />
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-black uppercase tracking-[0.3em] mb-8 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                       <Zap className="w-3 h-3" /> System Idle
                     </div>
-                    <h3 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">Task Center</h3>
-                    <p className="text-slate-400 max-w-lg mx-auto mb-12 text-lg font-medium leading-loose opacity-80 px-10">Your journey to mastery begins with a single session. Initialize your optimized flow engine now.</p>
+                    
+                    <div className="relative mb-10 group cursor-pointer" onClick={() => setIsTaskDrawerOpen(true)}>
+                       <div className="absolute inset-0 bg-indigo-500 rounded-[2rem] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                       <div className="relative p-6 rounded-[2rem] bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-xl shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:-translate-y-2">
+                          <Bell className="w-14 h-14 text-indigo-400" />
+                       </div>
+                    </div>
+                    
+                    <h3 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-4 tracking-tight drop-shadow-sm">Task Center</h3>
+                    <p className="text-slate-400 max-w-lg mx-auto mb-8 text-base font-medium leading-relaxed px-4">Your journey to mastery begins with a single session. Initialize your optimized flow engine now.</p>
+                    
                     <button 
                        onClick={() => setIsTaskDrawerOpen(true)}
-                       className="group relative px-8 py-3.5 rounded-2xl font-black text-lg text-white transition-all overflow-hidden shadow-xl shadow-indigo-600/30"
+                       className="group relative px-10 py-4 rounded-2xl font-black text-lg text-white transition-all overflow-hidden shadow-[0_0_40px_rgba(79,70,229,0.4)] hover:shadow-[0_0_60px_rgba(79,70,229,0.6)] hover:-translate-y-1"
                     >
                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 group-hover:from-blue-500 group-hover:to-indigo-500 transition-all"></div>
-                       <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
                        <span className="relative flex items-center gap-3">
-                         Start Studying
-                         <PlusCircle className="w-5 h-5" />
+                         Launch Session
+                         <PlusCircle className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
                        </span>
                     </button>
                   </div>
@@ -740,7 +760,7 @@ function App() {
 
           {/* Right: Subject Analytics Hub */}
           <div className="lg:col-span-12 xl:col-span-4 flex flex-col gap-6">
-            <div className="flex-1 min-h-[520px]">
+            <div className="flex-1 min-h-[400px] xl:min-h-[480px]">
                <SubjectTracker tasks={todayTasks} historyTasks={historyTasks} />
             </div>
           </div>
