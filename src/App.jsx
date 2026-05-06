@@ -656,7 +656,7 @@ function App() {
       {/* ═══════════════════════════════════════════
           PAGE CONTENT
       ═══════════════════════════════════════════ */}
-      <main className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 pt-24 pb-8 flex flex-col gap-4 relative z-10 font-medium">
+      <main className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 pt-24 pb-28 md:pb-8 flex flex-col gap-4 relative z-10 font-medium">
 
         {/* Compressed Quick Header */}
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-5 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-2xl shadow-xl relative overflow-hidden">
@@ -989,6 +989,50 @@ function App() {
           </div>
         </div>
       )}
+      {/* ═══════════════════════════════════════════
+          MOBILE BOTTOM NAVIGATION (APP-LIKE UI)
+      ═══════════════════════════════════════════ */}
+      <nav className="md:hidden fixed bottom-0 w-full z-50 backdrop-blur-xl border-t transition-all duration-300" style={{
+        background: 'rgba(11,17,32,0.85)',
+        borderColor: 'rgba(255,255,255,0.05)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }}>
+        <div className="flex items-center justify-around px-2 py-2">
+           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center gap-1 p-2 text-indigo-400">
+             <Home className="w-5 h-5 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+             <span className="text-[10px] font-bold tracking-wide">Home</span>
+           </button>
+           
+           <button onClick={() => exportTasksToExcel(historyTasks, tasks)} className="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-slate-300 transition-colors">
+             <FileSpreadsheet className="w-5 h-5" />
+             <span className="text-[10px] font-bold tracking-wide">Excel</span>
+           </button>
+           
+           {/* Center Floating Action Button */}
+           <div className="relative -top-6">
+             <button 
+               onClick={() => setIsTaskDrawerOpen(true)} 
+               className="flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-[0_8px_25px_rgba(79,70,229,0.5)] border-4 border-[#0B1120] text-white hover:scale-105 active:scale-95 transition-transform"
+             >
+               <PlusCircle className="w-6 h-6" />
+             </button>
+           </div>
+           
+           <button onClick={() => exportTasksToPDF(historyTasks, tasks)} className="flex flex-col items-center gap-1 p-2 text-slate-500 hover:text-slate-300 transition-colors">
+             <FileText className="w-5 h-5" />
+             <span className="text-[10px] font-bold tracking-wide">PDF</span>
+           </button>
+           
+           <button 
+              onClick={() => setSyncStatus(syncStatus === 'syncing' ? 'idle' : 'syncing')} 
+              className={`flex flex-col items-center gap-1 p-2 transition-colors ${syncStatus === 'error' ? 'text-red-400' : syncStatus === 'success' ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}
+           >
+             <Radio className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-pulse text-indigo-400' : ''}`} />
+             <span className="text-[10px] font-bold tracking-wide">Sync</span>
+           </button>
+        </div>
+      </nav>
+
     </div>
   );
 }
