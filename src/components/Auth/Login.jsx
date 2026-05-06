@@ -49,8 +49,14 @@ const Login = ({ onToggleMode, onLoginSuccess }) => {
       console.log('Google login success:', userCredential.user);
       if (onLoginSuccess) onLoginSuccess(userCredential.user);
     } catch (err) {
-      setError('Google sign-in failed. Please try again.');
-      console.error(err);
+      if (err.code === 'auth/popup-blocked') {
+        setError('Popup blocked by your browser. Please allow popups or use another login method.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('This domain/IP is not authorized in Firebase Console. Add it to Authorized Domains.');
+      } else {
+        setError(`Google sign-in failed: ${err.message}`);
+      }
+      console.error('Full Google Auth Error:', err);
     } finally {
       setIsGoogleLoading(false);
     }
