@@ -12,12 +12,11 @@ import SubjectTracker from './components/SubjectTracker';
 import GoalTracking from './components/GoalTracking';
 import Auth from './components/Auth/Auth';
 import { exportTasksToExcel, exportTasksToPDF } from './utils/exportUtils';
-import { auth, onAuthStateChanged, signOut } from './firebase';
 import { 
   BookOpen, GraduationCap, CalendarDays, X, Bell, AlertCircle, 
   PlusCircle, Download, CalendarHeart, Menu, LayoutDashboard,
   ChevronDown, Zap, Activity, BookMarked, CheckCircle2, Clock, Home, Radio,
-  FileSpreadsheet, FileText, LogOut
+  FileSpreadsheet, FileText
 } from 'lucide-react';
 import { isBefore, parse, differenceInMinutes, isSameDay, parseISO } from 'date-fns';
 
@@ -62,8 +61,6 @@ const analysisStyles = `
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const [tasks, setTasks] = useLocalStorage('study-tasks-today', []);
   const [historyTasks, setHistoryTasks] = useLocalStorage('study-tasks-history', []);
   const [activeTaskId, setActiveTaskId] = useLocalStorage('active-task-id', null);
@@ -462,47 +459,8 @@ function App() {
   const activeTask = todayTasks.find(t => t.id === activeTaskId);
   const pendingTasksList = todayTasks.filter(t => t.status === 'pending');
 
-  // Auth Listener
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setIsAuthenticated(true);
-        setUser(currentUser);
-      } else {
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-      setAuthLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      // setIsAuthenticated(false) will be handled by the listener
-    } catch (error) {
-      console.error("Error logging out: ", error);
-    }
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B1120' }}>
-         <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-indigo-400 font-bold tracking-widest uppercase text-sm animate-pulse">Initializing Workspace</p>
-         </div>
-      </div>
-    );
-  }
-
   if (!isAuthenticated) {
-    return <Auth onLoginSuccess={(user) => {
-      setIsAuthenticated(true);
-      setUser(user);
-    }} />;
+    return <Auth onAuthSuccess={(user) => setIsAuthenticated(true)} />;
   }
 
   return (
@@ -606,14 +564,6 @@ function App() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleLogout}
-                className="hidden md:flex items-center gap-2 px-4 py-2 mr-2 rounded-xl text-sm font-bold text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-
               {/* Task Drawer Toggle */}
               <div className="relative">
                 <button
