@@ -12,6 +12,8 @@ import SubjectTracker from './components/SubjectTracker';
 import GoalTracking from './components/GoalTracking';
 import Auth from './components/Auth/Auth';
 import { exportTasksToExcel, exportTasksToPDF } from './utils/exportUtils';
+import { auth, db, onAuthStateChanged, signOut } from './firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { 
   BookOpen, GraduationCap, CalendarDays, X, Bell, AlertCircle, 
   PlusCircle, Download, CalendarHeart, Menu, LayoutDashboard,
@@ -60,7 +62,8 @@ const analysisStyles = `
 `;
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [tasks, setTasks] = useLocalStorage('study-tasks-today', []);
   const [historyTasks, setHistoryTasks] = useLocalStorage('study-tasks-history', []);
   const [activeTaskId, setActiveTaskId] = useLocalStorage('active-task-id', null);
@@ -149,35 +152,57 @@ function App() {
     }
   }, [tasks, lastActiveDate, setTasks, setActiveTaskId, setLastActiveDate, historyTasks, setHistoryTasks]);
 
-  // Backend Sync Logic
+  // Firebase Auth Persistence & Initial Data Load
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        // Fetch user data from Firestore
+        try {
+          const docRef = doc(db, 'users', currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.tasks) setTasks(data.tasks);
+            if (data.historyTasks) setHistoryTasks(data.historyTasks);
+          }
+        } catch (error) {
+          console.error("Error fetching data from Firestore:", error);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, [setTasks, setHistoryTasks]);
+
+  // Real-time Cloud Sync Logic (Firestore)
   useEffect(() => {
     const syncData = async () => {
+      if (!user) return; // Only sync if logged in
       if (tasks.length === 0 && historyTasks.length === 0) return;
       
       setSyncStatus('syncing');
       try {
-        const allTasks = [...tasks, ...historyTasks];
-        const response = await fetch('http://localhost:5000/api/tasks/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tasks: allTasks })
-        });
+        const docRef = doc(db, 'users', user.uid);
+        await setDoc(docRef, {
+          tasks: tasks,
+          historyTasks: historyTasks,
+          lastUpdated: new Date().toISOString()
+        }, { merge: true });
         
-        if (response.ok) {
-          setSyncStatus('success');
-          setTimeout(() => setSyncStatus('idle'), 3000);
-        } else {
-          setSyncStatus('error');
-        }
+        setSyncStatus('success');
+        setTimeout(() => setSyncStatus('idle'), 3000);
       } catch (error) {
-        console.error('Backup failed:', error);
+        console.error('Firebase Backup failed:', error);
         setSyncStatus('error');
       }
     };
 
-    const timer = setTimeout(syncData, 5000); // Sync after 5s of inactivity
+    const timer = setTimeout(syncData, 3000); // Sync after 3s of changes
     return () => clearTimeout(timer);
-  }, [tasks, historyTasks]);
+  }, [tasks, historyTasks, user]);
 
   const handleSaveTask = (taskData) => {
     let updatedTasks;
@@ -459,9 +484,26 @@ function App() {
   const activeTask = todayTasks.find(t => t.id === activeTaskId);
   const pendingTasksList = todayTasks.filter(t => t.status === 'pending');
 
-  if (!isAuthenticated) {
-    return <Auth onAuthSuccess={(user) => setIsAuthenticated(true)} />;
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0B1120]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+      </div>
+    );
   }
+
+  if (!user) {
+    return <Auth onAuthSuccess={(u) => setUser(u)} />;
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen font-sans relative overflow-x-hidden selection:bg-indigo-500/30" style={{ background: '#0B1120', color: '#F8FAFC' }}>
@@ -564,6 +606,13 @@ function App() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
+              <button 
+                  onClick={handleLogout}
+                  className="hidden md:flex items-center justify-center px-4 py-2 rounded-xl text-xs font-bold transition-all border border-red-500/20 text-red-400 hover:bg-red-500/10 cursor-pointer"
+               >
+                 Logout
+               </button>
+              
               {/* Task Drawer Toggle */}
               <div className="relative">
                 <button

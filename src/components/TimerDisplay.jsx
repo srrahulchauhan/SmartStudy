@@ -61,9 +61,9 @@ export default function TimerDisplay({ activeTask, pendingTasks = [], onComplete
           border: `1px solid ${isRunning ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.08)'}`,
           boxShadow: isRunning ? '0 0 40px rgba(34,197,94,0.08)' : '0 10px 30px rgba(0,0,0,0.2)'
         }}>
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
+        <div className="flex flex-col xl:flex-row justify-between items-center gap-6 xl:gap-4">
 
-          <div className="flex-1 text-center lg:text-left w-full">
+          <div className="flex-1 text-center xl:text-left w-full max-w-sm mx-auto xl:mx-0">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold mb-3 uppercase tracking-widest"
               style={{
                 background: isRunning ? 'rgba(34,197,94,0.12)' : 'rgba(99,102,241,0.12)',
@@ -99,7 +99,7 @@ export default function TimerDisplay({ activeTask, pendingTasks = [], onComplete
                 Goal: {activeTask.goal}
               </p>
             )}
-            <div className="flex items-center gap-2 mt-4 justify-center lg:justify-start">
+            <div className="flex flex-wrap items-center gap-2 mt-4 justify-center xl:justify-start">
               <span className="px-3 py-1 rounded-lg bg-white/5 text-[10px] md:text-xs font-black text-slate-400 border border-white/5">
                 {formatDisplayTime(activeTask.plannedStart)} – {formatDisplayTime(activeTask.plannedEnd)}
               </span>
@@ -109,49 +109,49 @@ export default function TimerDisplay({ activeTask, pendingTasks = [], onComplete
             </div>
           </div>
 
-          <div className="flex flex-col items-center shrink-0">
-            <div className="text-6xl md:text-8xl font-black tabular-nums tracking-tighter"
+          <div className="flex flex-col items-center shrink-0 my-4 xl:my-0">
+            <div className="text-6xl md:text-7xl 2xl:text-8xl font-black tabular-nums tracking-tighter"
               style={{ color: isRunning ? '#22C55E' : '#E2E8F0', textShadow: isRunning ? '0 0 50px rgba(34,197,94,0.3)' : 'none' }}>
               {formatTime(remainingTime)}
             </div>
             <div className="text-[10px] md:text-xs font-black mt-2 tracking-[0.3em] uppercase text-slate-500">REMAINING FOCUS TIME</div>
           </div>
 
-          <div className="flex-1 flex flex-col sm:flex-row justify-center lg:justify-end gap-3 w-full">
+          <div className="flex-1 flex flex-row justify-center xl:justify-end gap-3 w-full max-w-sm mx-auto xl:mx-0">
             <button
               onClick={stopAlert}
-              className="p-4 rounded-2xl transition-all hover:scale-110 shrink-0 bg-white/5 border border-white/10 text-slate-400 hover:text-white"
+              className="p-3 md:p-4 rounded-2xl transition-all hover:scale-110 shrink-0 bg-white/5 border border-white/10 text-slate-400 hover:text-white flex items-center justify-center"
               title="Stop Alarm">
-              <BellOff className="w-6 h-6" />
+              <BellOff className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
-            <div className="flex gap-3 flex-1 sm:flex-none">
+            <div className="flex gap-2 flex-1 w-full">
               {activeTask.isPaused ? (
                 <button
                   onClick={() => onResumeTask(activeTask.id)}
-                  className="group flex-1 flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-white transition-all hover:scale-105"
+                  className="group flex-1 flex items-center justify-center gap-2 px-4 py-3 md:py-4 rounded-2xl font-black text-white text-xs md:text-sm transition-all hover:scale-105"
                   style={{ 
                     background: 'linear-gradient(135deg, #2563EB, #4F46E5)', 
                     boxShadow: '0 8px 30px rgba(79,70,229,0.4)' 
                   }}>
-                  <Play className="w-5 h-5 fill-current group-hover:scale-110" />
+                  <Play className="w-4 h-4 md:w-5 md:h-5 fill-current group-hover:scale-110" />
                   RESUME
                 </button>
               ) : (
                 <button
                   onClick={() => onPauseTask(activeTask.id)}
-                  className="flex-1 flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-white transition-all hover:scale-105 bg-white/10 border border-white/10 hover:bg-white/15"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 md:py-4 rounded-2xl font-black text-white text-xs md:text-sm transition-all hover:scale-105 bg-white/10 border border-white/10 hover:bg-white/15"
                   style={{ color: '#E2E8F0' }}>
-                  <Pause className="w-5 h-5 fill-current" />
+                  <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                   PAUSE
                 </button>
               )}
 
               <button
                 onClick={() => { stopAlert(); onStopTimer(activeTask.id); }}
-                className="flex-1 flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-white transition-all hover:scale-105"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 md:py-4 rounded-2xl font-black text-white text-xs md:text-sm transition-all hover:scale-105"
                 style={{ background: 'linear-gradient(135deg, #DC2626, #EF4444)', boxShadow: '0 8px 30px rgba(239,68,68,0.4)' }}>
-                <Square className="w-5 h-5 fill-current" />
+                <Square className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                 FINISH
               </button>
             </div>
