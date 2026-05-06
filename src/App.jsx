@@ -12,11 +12,12 @@ import SubjectTracker from './components/SubjectTracker';
 import GoalTracking from './components/GoalTracking';
 import Auth from './components/Auth/Auth';
 import { exportTasksToExcel, exportTasksToPDF } from './utils/exportUtils';
+import { auth, onAuthStateChanged, signOut } from './firebase';
 import { 
   BookOpen, GraduationCap, CalendarDays, X, Bell, AlertCircle, 
   PlusCircle, Download, CalendarHeart, Menu, LayoutDashboard,
   ChevronDown, Zap, Activity, BookMarked, CheckCircle2, Clock, Home, Radio,
-  FileSpreadsheet, FileText
+  FileSpreadsheet, FileText, LogOut
 } from 'lucide-react';
 import { isBefore, parse, differenceInMinutes, isSameDay, parseISO } from 'date-fns';
 
@@ -61,6 +62,8 @@ const analysisStyles = `
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const [tasks, setTasks] = useLocalStorage('study-tasks-today', []);
   const [historyTasks, setHistoryTasks] = useLocalStorage('study-tasks-history', []);
   const [activeTaskId, setActiveTaskId] = useLocalStorage('active-task-id', null);
@@ -459,8 +462,47 @@ function App() {
   const activeTask = todayTasks.find(t => t.id === activeTaskId);
   const pendingTasksList = todayTasks.filter(t => t.status === 'pending');
 
+  // Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setIsAuthenticated(true);
+        setUser(currentUser);
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // setIsAuthenticated(false) will be handled by the listener
+    } catch (error) {
+      console.error("Error logging out: ", error);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0B1120' }}>
+         <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-indigo-400 font-bold tracking-widest uppercase text-sm animate-pulse">Initializing Workspace</p>
+         </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
-    return <Auth onAuthSuccess={(user) => setIsAuthenticated(true)} />;
+    return <Auth onLoginSuccess={(user) => {
+      setIsAuthenticated(true);
+      setUser(user);
+    }} />;
   }
 
   return (
@@ -489,7 +531,7 @@ function App() {
         zIndex: 100,
         boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
       }}>
-        <div className="max-w-[1800px] mx-auto px-4 md:px-8 lg:px-12">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 lg:px-12">
           <div className="flex items-center justify-between h-20">
 
             {/* Logo */}
@@ -564,6 +606,14 @@ function App() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleLogout}
+                className="hidden md:flex items-center gap-2 px-4 py-2 mr-2 rounded-xl text-sm font-bold text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+
               {/* Task Drawer Toggle */}
               <div className="relative">
                 <button
@@ -656,14 +706,14 @@ function App() {
       {/* ═══════════════════════════════════════════
           PAGE CONTENT
       ═══════════════════════════════════════════ */}
-      <main className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 pt-24 pb-8 flex flex-col gap-6 relative z-10 font-medium">
+      <main className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8 pt-24 pb-8 flex flex-col gap-4 relative z-10 font-medium">
 
         {/* Compressed Quick Header */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-6 p-6 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-5 rounded-[2rem] bg-white/[0.03] border border-white/5 backdrop-blur-2xl shadow-xl relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent opacity-50"></div>
             
-            <div className="flex items-center gap-6 z-10">
-               <div className="hidden md:block p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+            <div className="flex items-center gap-4 z-10">
+               <div className="hidden md:block p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
                   <Zap className="w-6 h-6 text-indigo-400" />
                </div>
                <div>
@@ -705,10 +755,10 @@ function App() {
         <StatsCards tasks={todayTasks} historyTasks={historyTasks} timeframe={dashboardTimeframe} />
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
           {/* Left: Timer Hub / Schedule */}
-          <div className="lg:col-span-12 xl:col-span-8 flex flex-col gap-6">
+          <div className="lg:col-span-12 xl:col-span-8 flex flex-col gap-5">
             {activeTask ? (
               <TimerDisplay
                 activeTask={activeTask}
@@ -722,7 +772,7 @@ function App() {
                 onModifyTask={handleModifyTask}
               />
             ) : (
-               <div className="relative p-6 md:p-10 rounded-[2rem] border border-white/5 overflow-hidden flex flex-col items-center justify-center text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] min-h-[400px] xl:min-h-[480px] bg-gradient-to-br from-white/[0.04] to-transparent">
+               <div className="relative p-6 md:p-10 rounded-[2rem] border border-white/5 overflow-hidden flex flex-col items-center justify-center text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] min-h-[340px] xl:min-h-[420px] bg-gradient-to-br from-white/[0.04] to-transparent">
                   <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
                   {/* Background Image */}
                   <div className="absolute inset-0 w-full h-full opacity-10 mix-blend-overlay bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500 via-slate-900 to-black"></div>
@@ -739,12 +789,12 @@ function App() {
                        </div>
                     </div>
                     
-                    <h3 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-4 tracking-tight drop-shadow-sm">Task Center</h3>
-                    <p className="text-slate-400 max-w-lg mx-auto mb-8 text-base font-medium leading-relaxed px-4">Your journey to mastery begins with a single session. Initialize your optimized flow engine now.</p>
+                    <h3 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 mb-3 tracking-tight drop-shadow-sm">Task Center</h3>
+                    <p className="text-slate-400 max-w-lg mx-auto mb-6 text-sm font-medium leading-relaxed px-4">Your journey to mastery begins with a single session. Initialize your optimized flow engine now.</p>
                     
                     <button 
                        onClick={() => setIsTaskDrawerOpen(true)}
-                       className="group relative px-10 py-4 rounded-2xl font-black text-lg text-white transition-all overflow-hidden shadow-[0_0_40px_rgba(79,70,229,0.4)] hover:shadow-[0_0_60px_rgba(79,70,229,0.6)] hover:-translate-y-1"
+                       className="group relative px-8 py-3 rounded-2xl font-black text-base text-white transition-all overflow-hidden shadow-[0_0_30px_rgba(79,70,229,0.4)] hover:shadow-[0_0_50px_rgba(79,70,229,0.6)] hover:-translate-y-1"
                     >
                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 group-hover:from-blue-500 group-hover:to-indigo-500 transition-all"></div>
                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
@@ -759,8 +809,8 @@ function App() {
           </div>
 
           {/* Right: Subject Analytics Hub */}
-          <div className="lg:col-span-12 xl:col-span-4 flex flex-col gap-6">
-            <div className="flex-1 min-h-[400px] xl:min-h-[480px]">
+          <div className="lg:col-span-12 xl:col-span-4 flex flex-col gap-5">
+            <div className="flex-1 min-h-[340px] xl:min-h-[420px]">
                <SubjectTracker tasks={todayTasks} historyTasks={historyTasks} />
             </div>
           </div>
